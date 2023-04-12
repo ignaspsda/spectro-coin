@@ -1,24 +1,34 @@
 package com.exchange.currency.service;
 
 import com.exchange.currency.exception.InvalidCurrencyException;
-import com.exchange.currency.model.CurrencyExchangeRate;
-import com.exchange.currency.payload.ExchangeRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class CurrencyService {
-    public void currenciesAreValid(List<String> currencyList, String initialCurrency, String finalCurrency) {
-        validateCurrency(currencyList, initialCurrency);
-        validateCurrency(currencyList, finalCurrency);
+
+    private final List<String> currencies;
+
+    @Autowired
+    public CurrencyService(List<String> currencies) {
+        this.currencies = currencies;
     }
 
-    private void validateCurrency(List<String> currencyList, String currency) {
-        boolean exists = currencyList.stream().anyMatch(s -> s.equals(currency));
+    public void validateCurrencies(String initialCurrency, String finalCurrency) {
+        List<String> nonExistentCurrencies = Stream.of(initialCurrency, finalCurrency).filter(c -> !currencies.contains(c)).toList();
 
-        if (!exists) {
-            throw new InvalidCurrencyException(String.format("Currency %s not allowed!", currency));
+        if (nonExistentCurrencies.size() > 0) {
+            String excResult = String.join(", ", nonExistentCurrencies);
+            throw new InvalidCurrencyException(String.format("One or both currencies are not allowed. Check currencies: %s", excResult));
+        }
+
+        if (initialCurrency.equalsIgnoreCase(finalCurrency)) {
+            throw new InvalidCurrencyException(String.format("You can not exchange from %s to %s", initialCurrency, finalCurrency));
         }
     }
+
 }
